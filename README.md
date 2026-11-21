@@ -1,5 +1,8 @@
 # HSC
 
+[![test](https://github.com/mmrmfn/hsc/actions/workflows/test.yml/badge.svg)](https://github.com/mmrmfn/hsc/actions/workflows/test.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 **A compressor where seven models guess every byte, and only the winner gets written.**
 
 HSC is built for sensor data: lidar scans, IMU logs, anything made of
