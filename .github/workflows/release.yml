@@ -1,0 +1,126 @@
+name: release
+
+# Publish a release:  bump VERSION in hsc.py, commit, then
+#   git tag v2.1 && git push origin v2.1
+# To (re)build the release for an existing tag, run this workflow by hand
+# from the Actions tab and enter the tag (e.g. v1.0).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build a release for (e.g. v1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Check tag matches hsc.py version
+        id: version
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          git show "$TAG:hsc.py" > /tmp/hsc.py
+          VER=$(python3 /tmp/hsc.py --version | awk '{print $2}')
+          if [ "v$VER" != "$TAG" ]; then
+            echo "::error::tag is $TAG but hsc.py says version $VER"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build downloads
+        run: sh tools/package.sh /tmp/hsc.py dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+  # Install each download on its real OS before anything is published.
+  smoke-test:
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Install, use, uninstall (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then tar -xzf dist/hsc-linux.tar.gz; else unzip -q dist/hsc-macos.zip; fi
+          cd hsc-*/
+          sh install.sh
+          hsc --version
+          printf 'hello hsc hello hsc hello hsc' > t.txt
+          hsc c t.txt && hsc d t.txt.hsc back.txt && cmp t.txt back.txt
+          sh install.sh --uninstall
+          test ! -e /usr/local/bin/hsc
+
+      - name: Install, use, uninstall (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Expand-Archive dist/hsc-windows.zip -DestinationPath .
+          $dir = (Get-ChildItem -Directory hsc-*).FullName
+          powershell -NoProfile -ExecutionPolicy Bypass -File "$dir\install.ps1"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $hsc = "$env:LOCALAPPDATA\Programs\HSC\hsc.cmd"
+          & $hsc --version
+          Set-Content t.txt 'hello hsc hello hsc hello hsc'
+          & $hsc c t.txt; & $hsc d t.txt.hsc back.txt
+          if ((Get-FileHash t.txt).Hash -ne (Get-FileHash back.txt).Hash) { exit 1 }
+          powershell -NoProfile -ExecutionPolicy Bypass -File "$dir\install.ps1" -Uninstall
+          if (Test-Path $hsc) { exit 1 }
+
+  publish:
+    needs: [package, smoke-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Create or update the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.package.outputs.tag }}
+        run: |
+          # Only the highest version gets the "Latest" badge, whatever order releases are made in.
+          HIGHEST=$(git tag --list 'v*' --sort=-v:refname | head -1)
+          LATEST=$([ "$TAG" = "$HIGHEST" ] && echo true || echo false)
+          NOTES="release-notes/$TAG.md"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          elif [ -f "$NOTES" ]; then
+            gh release create "$TAG" dist/* --verify-tag --title "HSC ${TAG#v}" --notes-file "$NOTES" --latest=$LATEST
+          else
+            gh release create "$TAG" dist/* --verify-tag --title "HSC ${TAG#v}" --generate-notes --latest=$LATEST
+          fi

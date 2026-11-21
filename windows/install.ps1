@@ -86,8 +86,10 @@ if (-not $runner) {
 # ---------------------------------------------------------------- install files
 Write-Host "Installing HSC to $Dest"
 New-Item -ItemType Directory -Force -Path $Dest | Out-Null
-Copy-Item -Force (Join-Path $Here '..\hsc.py') $Dest
-Copy-Item -Force (Join-Path $Here '..\hsc.magic') $Dest
+# Release zips have hsc.py next to this script; the source repo has it one level up.
+$Src = if (Test-Path (Join-Path $Here 'hsc.py')) { $Here } else { Join-Path $Here '..' }
+Copy-Item -Force (Join-Path $Src 'hsc.py') $Dest
+Copy-Item -Force (Join-Path $Src 'hsc.magic') $Dest
 Copy-Item -Force (Join-Path $Here 'install.ps1') $Dest   # so uninstall works later
 @"
 @echo off

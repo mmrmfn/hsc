@@ -71,22 +71,24 @@ Want to watch it think? `--trace` logs the winner and every guess for each byte:
 
 ## Install
 
-All installers need **Python 3.8+**.
+Download the latest release for your OS:
 
-**Windows:** download the repo (Code → Download ZIP), open `windows`, and
-double-click **install.cmd**. It installs for your user only, no admin needed,
-and adds right-click **Compress with HSC** / **Extract with HSC**.
-`uninstall.cmd` removes it.
+| OS | Download | Install |
+|---|---|---|
+| **Windows** | [hsc-windows.zip](https://github.com/mmrmfn/hsc/releases/latest/download/hsc-windows.zip) | Unzip, double-click **install.cmd** |
+| **macOS** | [hsc-macos.zip](https://github.com/mmrmfn/hsc/releases/latest/download/hsc-macos.zip) | Unzip, run `sh install.sh` |
+| **Linux** | [hsc-linux.tar.gz](https://github.com/mmrmfn/hsc/releases/latest/download/hsc-linux.tar.gz) | Extract, run `sh install.sh` |
+| Any | [hsc.py](https://github.com/mmrmfn/hsc/releases/latest/download/hsc.py) | No install: `python3 hsc.py c file` |
 
-**Linux / macOS:**
-```
-sh install.sh                        # system-wide (asks for sudo)
-PREFIX=$HOME/.local sh install.sh    # just for you
-sh install.sh --uninstall
-```
-On Linux, the installer also teaches `file` to recognize `.hsc` files.
+All of them need **Python 3.8+**. Older versions and release notes are on the
+[Releases page](https://github.com/mmrmfn/hsc/releases).
 
-Or skip installing and run `python3 hsc.py` directly.
+- **Windows:** installs for your user only, no admin needed. It adds
+  right-click **Compress with HSC** / **Extract with HSC**, and
+  `uninstall.cmd` removes it.
+- **macOS / Linux:** `PREFIX=$HOME/.local sh install.sh` installs just for
+  you, without sudo. `sh install.sh --uninstall` removes it. On Linux, it
+  also teaches `file` to recognize `.hsc` files.
 
 ## Usage
 
@@ -122,6 +124,16 @@ HSC 2.0 also reads HSC 1.0 files (Huffman only, version byte `0x10`).
 python -m unittest discover -v tests
 ```
 CI runs the tests and all the installers on Windows, macOS and Linux.
+
+## Making a release
+
+1. Bump `VERSION` in `hsc.py` and add `release-notes/vX.Y.md`.
+2. Commit, then run `git tag vX.Y && git push origin main vX.Y`.
+
+The [release workflow](.github/workflows/release.yml) builds the Windows,
+macOS and Linux downloads, installs each one on its real OS, and publishes
+the release only if all three pass. `tools/package.sh` builds the same
+downloads locally.
 
 ## License
 
