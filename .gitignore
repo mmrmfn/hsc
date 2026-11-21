@@ -5,3 +5,4 @@ __pycache__/
 *.back
 .DS_Store
 Thumbs.db
+!tests/fixtures/*.hsc
