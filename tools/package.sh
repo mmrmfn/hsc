@@ -17,6 +17,7 @@ VER="$(python3 "$SRC" --version | awk '{print $2}')"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 rm -rf "$OUT" && mkdir -p "$OUT"
+OUT="$(cd "$OUT" && pwd)"            # absolute: the steps below cd elsewhere
 NAME="hsc-$VER"
 
 # ---- Windows: flat folder, double-click install.cmd
