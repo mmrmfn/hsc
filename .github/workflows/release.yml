@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Version to release, e.g. v2.1"
+        description: "Version to release, e.g. 2.1 or v2.1"
         required: true
       ref:
         description: "Commit or branch to release (used if the tag doesn't exist yet)"
@@ -43,6 +43,7 @@ jobs:
           TAG: ${{ inputs.tag || github.ref_name }}
           REF: ${{ inputs.ref || 'main' }}
         run: |
+          TAG="v${TAG#v}"                 # accept "1.0" or "v1.0"
           # Release the existing tag if there is one, otherwise the given commit/branch.
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
             SHA=$(git rev-parse "$TAG^{commit}")
