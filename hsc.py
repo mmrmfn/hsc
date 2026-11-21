@@ -60,7 +60,10 @@ V1, V2 = 0x10, 0x20
 # =====================================================================
 
 def _v1_tree(freqs):
-    heap = [(f, i, s) for i, (s, f) in enumerate(sorted(freqs.items())) if f]
+    # Number symbols only after dropping zero counts, exactly like the 1.0
+    # encoder did - otherwise ties break differently and the tree won't match.
+    used = sorted((s, f) for s, f in freqs.items() if f)
+    heap = [(f, i, s) for i, (s, f) in enumerate(used)]
     heapq.heapify(heap)
     if len(heap) == 1:
         return (heap[0][2], heap[0][2])

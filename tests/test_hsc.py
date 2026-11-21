@@ -100,6 +100,16 @@ class RoundTrip(unittest.TestCase):
         self.assertFalse(os.path.exists(self.path("out")))
         self.assertNotEqual(run("d", self.path("missing.hsc")).returncode, 0)
 
+    def test_opens_hsc_1_0_files(self):
+        # A real HSC 1.0 file with lots of frequency ties - the case that broke
+        # 1.0 decoding before the tie-break fix.
+        fixtures = os.path.join(HERE, "fixtures")
+        out = self.path("hello.out")
+        r = run("d", os.path.join(fixtures, "hello-v1.hsc"), out)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        with open(out, "rb") as a, open(os.path.join(fixtures, "hello.txt"), "rb") as b:
+            self.assertEqual(a.read(), b.read())
+
     def test_help_and_version(self):
         self.assertIn("Usage", run("--help").stdout)
         self.assertIn("Usage", run("-h").stdout)
