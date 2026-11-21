@@ -1,0 +1,48 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.9", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Round-trip tests
+        run: python -m unittest discover -v tests
+
+      - name: Installer (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: |
+          sh install.sh
+          hsc --version
+          printf 'hello hsc hello hsc hello hsc' > t.txt
+          hsc c t.txt && hsc d t.txt.hsc back.txt && cmp t.txt back.txt
+          sh install.sh --uninstall
+          ! command -v hsc
+
+      - name: Installer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File windows\install.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $hsc = "$env:LOCALAPPDATA\Programs\HSC\hsc.cmd"
+          & $hsc --version
+          Set-Content t.txt 'hello hsc hello hsc hello hsc'
+          & $hsc c t.txt; & $hsc d t.txt.hsc back.txt
+          if ((Get-FileHash t.txt).Hash -ne (Get-FileHash back.txt).Hash) { exit 1 }
+          if (-not (Test-Path 'Registry::HKEY_CURRENT_USER\Software\Classes\.hsc')) { exit 1 }
+          powershell -NoProfile -ExecutionPolicy Bypass -File windows\install.ps1 -Uninstall
+          if (Test-Path $hsc) { exit 1 }
+          if (Test-Path 'Registry::HKEY_CURRENT_USER\Software\Classes\.hsc') { exit 1 }

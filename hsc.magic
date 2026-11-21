@@ -1,0 +1,13 @@
+# HSC compressed data - magic rules for the Unix `file` command
+# Test:     file -m hsc.magic yourfile.hsc
+# Install:  sudo sh -c 'cat hsc.magic >> /etc/magic'
+
+0	string		HSC		HSC compressed data
+!:mime	application/x-hsc
+!:ext	hsc
+>3	byte		0x10		\b, version 1.0 (Huffman)
+>>4	ubelong		x		\b, original size %u bytes
+>3	byte		0x20		\b, version 2.0 (guess models)
+>>4	ubeshort	0		\b, stored raw
+>>4	ubeshort	>0		\b, record stride %u bytes
+>>6	ubequad		x		\b, original size %llu bytes
