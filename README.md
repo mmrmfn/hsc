@@ -127,8 +127,9 @@ CI runs the tests and all the installers on Windows, macOS and Linux.
 
 ## Making a release
 
-1. Bump `VERSION` in `hsc.py` and add `release-notes/vX.Y.md`.
-2. Commit, then run `git tag vX.Y && git push origin main vX.Y`.
+1. Bump `VERSION` in `hsc.py`, add `release-notes/vX.Y.md`, and push.
+2. Either run `git tag vX.Y && git push origin vX.Y`, or go to
+   **Actions → release → Run workflow** and enter `vX.Y`.
 
 The [release workflow](.github/workflows/release.yml) builds the Windows,
 macOS and Linux downloads, installs each one on its real OS, and publishes
